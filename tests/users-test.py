@@ -1,4 +1,4 @@
-from faker import Faker
+from faker import Faker, Factory
 from nose.tools import *
 
 from clients import users
@@ -10,43 +10,53 @@ class TestUsers(object):
     def __get_minimal_user(self):
         return {'name': self.fake.name()}
 
-    def __get_full_user(self):
+    def __get_full_user(self, fake):
         return {
-            "name": self.fake.name(),
-            "username": self.fake.user_name(),
-            "email": self.fake.email(),
+            "name": fake.name(),
+            "username": fake.user_name(),
+            "email": fake.email(),
             "address": {
-                "street": self.fake.street_name(),
-                "city": self.fake.city(),
-                "zipcode": self.fake.zipcode(),
+                "street": fake.street_name(),
+                "city": fake.city(),
+                "zipcode": fake.zipcode() if hasattr(fake, 'zipcode') else None,
                 "geo": {
-                    "lat": str(self.fake.latitude()),
-                    "lng": str(self.fake.longitude())
+                    "lat": str(fake.latitude()),
+                    "lng": str(fake.longitude())
                 }
             },
-            "phone": self.fake.phone_number(),
-            "website": self.fake.words(1)[0] + ".org",
+            "phone": fake.phone_number(),
+            "website": fake.words(1)[0] + ".org",
             "company": {
-                "name": self.fake.company(),
-                "catchPhrase": self.fake.catch_phrase(),
-                "bs": self.fake.bs()
+                "name": fake.company(),
+                "catchPhrase": fake.catch_phrase() if hasattr(fake, 'catch_phrase') else None,
+                "bs": fake.bs() if hasattr(fake, 'bs') else None
             }
         }
 
+    def __get_full_user_en(self):
+        return self.__get_full_user(self.fake)
+
+    def __get_full_user_localized(self):
+        return self.__get_full_user(Factory.create('zh_CN'))
+
     def test_create_user(self):
-        prev = users.get()
-        json = self.__get_minimal_user()
-        users.post(json)
-        now = users.get()
-        assert_equals(len(prev) + 1, len(now),
-                      'Users count should increase by 1, '
-                      'was %d but now %s' % (len(prev), len(now)))
-        user_id = now[-1].get('id')
-        assert_is_not_none(user_id, "Created record should have id")
-        json.update(id=user_id)
-        assert_dict_equal(json, now[-1],
-                          'Data of the last record should be equal to the data sent + id, '
-                          'sent %s but got %s' % (json, now[-1]))
+        for case, json in (('User with minimal data', self.__get_minimal_user()),
+                           ('User with all data', self.__get_full_user_en()),
+                           ('User with data in not-ASCII locale', self.__get_full_user_localized())):
+            def test():
+                prev = users.get()
+                users.post(json)
+                now = users.get()
+                assert_equals(len(prev) + 1, len(now),
+                              case + ": Users count should increase by 1, "
+                              "was %d but now %s" % (len(prev), len(now)))
+                user_id = now[-1].get('id')
+                assert_is_not_none(user_id, case + ": Created record should have id")
+                json.update(id=user_id)
+                assert_dict_equal(json, now[-1],
+                                  case + ": Data of the last record should be equal to the data sent + id, "
+                                  "sent %s but got %s" % (json, now[-1]))
+            yield test
 
     def test_list_users(self):
         user_list = users.get()
@@ -54,7 +64,7 @@ class TestUsers(object):
                            "Data should be a list but got %s" % user_list)
 
     def test_filter_users_by_full_name(self):
-        user = self.__get_full_user()
+        user = self.__get_full_user_en()
         users.post(user)
         search_name = user['name']
         user_list = users.get(name=search_name)
@@ -69,7 +79,7 @@ class TestUsers(object):
                                            "data sent + id, sent %s but got %s" % (user, last_user))
 
     def test_filter_users_by_email(self):
-        user = self.__get_full_user()
+        user = self.__get_full_user_en()
         users.post(user)
         search_email = user['email']
         user_list = users.get(email=search_email)
@@ -84,7 +94,7 @@ class TestUsers(object):
                                            "data sent + is, sent %s but got %s" % (user, last_user))
 
     def test_filter_user_by_email(self):
-        user = self.__get_full_user()
+        user = self.__get_full_user_en()
         users.post(user)
         search_phone = user['phone']
         user_list = users.get(phone=search_phone)
@@ -99,7 +109,7 @@ class TestUsers(object):
                                            "data sent + is, sent %s but got %s" % (user, last_user))
 
     def test_filer_user_by_zipcode(self):
-        user = self.__get_full_user()
+        user = self.__get_full_user_en()
         users.post(user)
         search_zipcode = user['address']['zipcode']
         user_list = users.get(**{'address.zipcode': search_zipcode})
@@ -115,7 +125,7 @@ class TestUsers(object):
                                            "data sent + is, sent %s but got %s" % (user, last_user))
 
     def test_filter_by_name_and_email(self):
-        user = self.__get_full_user()
+        user = self.__get_full_user_en()
         users.post(user)
         search_name = user['name']
         search_email = user['email']
@@ -131,7 +141,7 @@ class TestUsers(object):
                                            "data sent + is, sent %s but got %s" % (user, last_user))
 
     def test_full_text_search(self):
-        user = self.__get_full_user()
+        user = self.__get_full_user_en()
         users.post(user)
         for search_token in (user['name'].split()[0],
                              user['name'].split()[1],
