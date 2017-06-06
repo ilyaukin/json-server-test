@@ -157,3 +157,47 @@ class TestUsers(object):
                 assert_dict_equal(user, last_user, "Data of the last record should be equal to "
                                            "data sent + is, sent %s but got %s" % (user, last_user))
             yield test
+
+    def test_replace_user(self):
+        user = self.__get_full_user_en()
+        users.post(user)
+        user_list = users.get()
+        old_user = max(user_list, key=lambda user: user['id'])
+        user_id = old_user['id']
+        new_user = self.__get_minimal_user()
+        users.put(user_id, new_user)
+        user_list = users.get()
+        last_user = max(user_list, key=lambda user: user['id'])
+        new_user.update(id=user_id)
+        assert_dict_equal(new_user, last_user)
+
+    def test_update_user(self):
+        """ note: for inner fields whole dict should be replaced (current behavior) """
+        user = self.__get_full_user_en()
+        users.post(user)
+        user_list = users.get()
+        old_user = max(user_list, key=lambda user:user['id'])
+        user_id = old_user['id']
+        for new_json in ({'name': self.fake.name()},
+                         {'address': {'street': self.fake.street_name()}}):
+            def test():
+                users.patch(user_id, new_json)
+                user_list = users.get()
+                last_user = max(user_list, key=lambda user: user['id'])
+                old_user.update(new_json)
+                assert_dict_equal(old_user, last_user)
+            yield test
+
+    def test_delete_user(self):
+        user = self.__get_full_user_en()
+        users.post(user)
+        user_list = users.get()
+        old_user = max(user_list, key=lambda user: user['id'])
+        user_id = old_user['id']
+        users.delete(user_id)
+        new_user_list = users.get()
+        assert_true(len(filter(lambda user: user['id'] == user_id, new_user_list)) == 0,
+                    "Deleted user with id = %d should not be in the list" % user_id)
+        assert_equals(len(user_list) - 1, len(new_user_list),
+                      "New user list should be shorter by 1 than list before deletion, "
+                      "was %d, now %d" % (len(user_list), len(new_user_list)))
