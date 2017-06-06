@@ -63,7 +63,7 @@ class TestUsers(object):
         assert_is_instance(user_list, list,
                            "Data should be a list but got %s" % user_list)
 
-    def test_filter_users_by_full_name(self):
+    def test_filter_by_name(self):
         user = self.__get_full_user_en()
         users.post(user)
         search_name = user['name']
@@ -78,7 +78,7 @@ class TestUsers(object):
         assert_dict_equal(user, last_user, "Data of the last record should be equal to "
                                            "data sent + id, sent %s but got %s" % (user, last_user))
 
-    def test_filter_users_by_email(self):
+    def test_filter_by_email(self):
         user = self.__get_full_user_en()
         users.post(user)
         search_email = user['email']
@@ -93,7 +93,7 @@ class TestUsers(object):
         assert_dict_equal(user, last_user, "Data of the last record should be equal to "
                                            "data sent + is, sent %s but got %s" % (user, last_user))
 
-    def test_filter_user_by_email(self):
+    def test_filter_by_phone(self):
         user = self.__get_full_user_en()
         users.post(user)
         search_phone = user['phone']
@@ -108,7 +108,7 @@ class TestUsers(object):
         assert_dict_equal(user, last_user, "Data of the last record should be equal to "
                                            "data sent + is, sent %s but got %s" % (user, last_user))
 
-    def test_filer_user_by_zipcode(self):
+    def test_filer_by_zipcode(self):
         user = self.__get_full_user_en()
         users.post(user)
         search_zipcode = user['address']['zipcode']
