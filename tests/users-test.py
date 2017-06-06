@@ -1,4 +1,6 @@
 from faker import Faker, Factory
+from nose.plugins.attrib import attr
+from nose.plugins.skip import SkipTest
 from nose.tools import *
 
 from clients import users
@@ -91,7 +93,7 @@ class TestUsers(object):
         last_user = max(user_list, key=lambda user: user['id'])
         user.update(id=last_user['id'])
         assert_dict_equal(user, last_user, "Data of the last record should be equal to "
-                                           "data sent + is, sent %s but got %s" % (user, last_user))
+                                           "data sent + id, sent %s but got %s" % (user, last_user))
 
     def test_filter_by_phone(self):
         user = self.__get_full_user_en()
@@ -106,7 +108,7 @@ class TestUsers(object):
         last_user = max(user_list, key=lambda user: user['id'])
         user.update(id=last_user['id'])
         assert_dict_equal(user, last_user, "Data of the last record should be equal to "
-                                           "data sent + is, sent %s but got %s" % (user, last_user))
+                                           "data sent + id, sent %s but got %s" % (user, last_user))
 
     def test_filer_by_zipcode(self):
         user = self.__get_full_user_en()
@@ -122,7 +124,7 @@ class TestUsers(object):
         last_user = max(user_list, key=lambda user: user['id'])
         user.update(id=last_user['id'])
         assert_dict_equal(user, last_user, "Data of the last record should be equal to "
-                                           "data sent + is, sent %s but got %s" % (user, last_user))
+                                           "data sent + id, sent %s but got %s" % (user, last_user))
 
     def test_filter_by_name_and_email(self):
         user = self.__get_full_user_en()
@@ -138,7 +140,7 @@ class TestUsers(object):
         last_user = max(user_list, key=lambda user: user['id'])
         user.update(id=last_user['id'])
         assert_dict_equal(user, last_user, "Data of the last record should be equal to "
-                                           "data sent + is, sent %s but got %s" % (user, last_user))
+                                           "data sent + id, sent %s but got %s" % (user, last_user))
 
     def test_full_text_search(self):
         user = self.__get_full_user_en()
@@ -156,7 +158,7 @@ class TestUsers(object):
                 last_user = max(user_list, key=lambda user: user['id'])
                 user.update(id=last_user['id'])
                 assert_dict_equal(user, last_user, "Data of the last record should be equal to "
-                                           "data sent + is, sent %s but got %s" % (user, last_user))
+                                           "data sent + id, sent %s but got %s" % (user, last_user))
             yield test
 
     def test_replace_user(self):
@@ -201,4 +203,48 @@ class TestUsers(object):
                     "Deleted user with id = %d should not be in the list" % user_id)
         assert_equals(len(user_list) - 1, len(new_user_list),
                       "New user list should be shorter by 1 than list before deletion, "
+                      "was %d, now %d" % (len(user_list), len(new_user_list)))
+
+    def test_create_user_with_id(self):
+        user = self.__get_full_user_en()
+        user_list = users.get()
+        user_id = max(user['id'] for user in user_list) + 1 if user_list else 1
+        user.update(id=user_id)
+        users.post(user)
+        new_user_list = users.get()
+        assert_equals(len(user_list) + 1, len(new_user_list),
+                      "Users count should be increased by 1,"
+                      " was %d, now %d" % (len(user_list), len(new_user_list)))
+        assert_equals(user, new_user_list[-1],
+                      "User should be created with the id passed, "
+                      "sent %s, created %s" % (user, new_user_list[-1]))
+
+    @attr(negative=True)
+    def test_create_user_with_existing_id(self):
+        user = self.__get_full_user_en()
+        user_list = users.get()
+        last_user = max(user_list, key=lambda user: user['id'])
+        user_id = last_user['id']
+        user.update(id=user_id)
+        users.post(user)
+        new_user_list = users.get()
+        assert_equals(len(user_list), len(new_user_list),
+                      "Users count should remain the same, "
+                      "was %d, now %d" % (len(user_list), len(new_user_list)))
+        new_user = filter(lambda user: user['id'] == user_id, user_list)[0]
+        assert_equals(last_user, new_user,
+                      "User with existing id should remain unchanged, "
+                      "was %s, now %s" % (last_user, new_user))
+
+    @attr(negative=True)
+    @SkipTest
+    def test_create_user_with_wrong_data(self):
+        """ This fails, I think this is a bug because this behavior resulting 
+        to broken json structure, filed https://github.com/typicode/json-server/issues/547
+        """
+        user_list = users.get()
+        users.post([{'foo': 'bar'}])
+        new_user_list = users.get()
+        assert_equals(len(user_list), len(new_user_list),
+                      "User count should remain the same, "
                       "was %d, now %d" % (len(user_list), len(new_user_list)))
