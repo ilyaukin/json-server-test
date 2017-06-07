@@ -154,7 +154,16 @@ class TestUsers(object):
                 user_list = users.get(q=search_token)
                 assert_true(len(user_list) >= 1, "At least one user should be returned by token '%s', "
                                                  "but got %s" % (search_token, user_list))
-                # TODO test that no wrong users returned
+
+                # test that no wrong users returned
+                def flatten(x):
+                    return ''.join(flatten(i) if isinstance(i, dict) else unicode(i) for i in x.values())
+                for user2 in user_list:
+                    user2_text = flatten(user2)
+                    assert_true(search_token.lower() in user2_text.lower(),
+                                "User retrieved which does not contain search text (%s): %s"
+                                % (search_token, user2))
+
                 last_user = max(user_list, key=lambda user: user['id'])
                 user.update(id=last_user['id'])
                 assert_dict_equal(user, last_user, "Data of the last record should be equal to "
