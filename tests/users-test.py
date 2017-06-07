@@ -42,6 +42,7 @@ class TestUsers(object):
         return self.__get_full_user(Factory.create('zh_CN'))
 
     def test_create_user(self):
+        """ Positive test on create user """
         for case, json in (('User with minimal data', self.__get_minimal_user()),
                            ('User with all data', self.__get_full_user_en()),
                            ('User with data in not-ASCII locale', self.__get_full_user_localized())):
@@ -61,11 +62,13 @@ class TestUsers(object):
             yield test
 
     def test_list_users(self):
+        """ Test that we can get user list """
         user_list = users.get()
         assert_is_instance(user_list, list,
                            "Data should be a list but got %s" % user_list)
 
     def test_filter_by_name(self):
+        """ Test filtering user by name field """
         user = self.__get_full_user_en()
         users.post(user)
         search_name = user['name']
@@ -81,6 +84,7 @@ class TestUsers(object):
                                            "data sent + id, sent %s but got %s" % (user, last_user))
 
     def test_filter_by_email(self):
+        """ Test filtering user by email field """
         user = self.__get_full_user_en()
         users.post(user)
         search_email = user['email']
@@ -96,6 +100,7 @@ class TestUsers(object):
                                            "data sent + id, sent %s but got %s" % (user, last_user))
 
     def test_filter_by_phone(self):
+        """ Test filtering user by phone field """
         user = self.__get_full_user_en()
         users.post(user)
         search_phone = user['phone']
@@ -111,6 +116,7 @@ class TestUsers(object):
                                            "data sent + id, sent %s but got %s" % (user, last_user))
 
     def test_filer_by_zipcode(self):
+        """ Test filtering user by zipcode (inner field) """
         user = self.__get_full_user_en()
         users.post(user)
         search_zipcode = user['address']['zipcode']
@@ -127,6 +133,7 @@ class TestUsers(object):
                                            "data sent + id, sent %s but got %s" % (user, last_user))
 
     def test_filter_by_name_and_email(self):
+        """ Test filtering user by two fields -last_user name and email """
         user = self.__get_full_user_en()
         users.post(user)
         search_name = user['name']
@@ -143,6 +150,7 @@ class TestUsers(object):
                                            "data sent + id, sent %s but got %s" % (user, last_user))
 
     def test_full_text_search(self):
+        """ Test full text search """
         user = self.__get_full_user_en()
         users.post(user)
         for search_token in (user['name'].split()[0],
@@ -171,6 +179,7 @@ class TestUsers(object):
             yield test
 
     def test_filter_by_name_unicode(self):
+        """ Test filter user by unicode name """
         user = self.__get_full_user_localized()
         users.post(user)
         search_name = user['name']
@@ -182,6 +191,7 @@ class TestUsers(object):
                                            "sent %s but got %s" % (user, last_user))
 
     def test_full_text_search_unicode(self):
+        """ Test full text search by unicode text """
         user = self.__get_full_user_localized()
         users.post(user)
         search_token = user['name'][:2]
@@ -193,6 +203,7 @@ class TestUsers(object):
                                            "sent %s but got %s" % (user, last_user))
 
     def test_replace_user(self):
+        """ Test replace user data by method PUT """
         user = self.__get_full_user_en()
         users.post(user)
         user_list = users.get()
@@ -206,7 +217,8 @@ class TestUsers(object):
         assert_dict_equal(new_user, last_user)
 
     def test_update_user(self):
-        """ note: for inner fields whole dict should be replaced (current behavior) """
+        """ Test update user data by method PATCH
+        note: for inner fields whole dict should be replaced (current behavior) """
         user = self.__get_full_user_en()
         users.post(user)
         user_list = users.get()
@@ -223,6 +235,7 @@ class TestUsers(object):
             yield test
 
     def test_delete_user(self):
+        """ Test delete user by method DELETE """
         user = self.__get_full_user_en()
         users.post(user)
         user_list = users.get()
@@ -237,6 +250,7 @@ class TestUsers(object):
                       "was %d, now %d" % (len(user_list), len(new_user_list)))
 
     def test_create_user_with_id(self):
+        """ Test create user with id specified in request """
         user = self.__get_full_user_en()
         user_list = users.get()
         user_id = max(user['id'] for user in user_list) + 1 if user_list else 1
@@ -251,6 +265,7 @@ class TestUsers(object):
                       "sent %s, created %s" % (user, new_user_list[-1]))
 
     def test_sequence_after_create_user_with_id(self):
+        """ Test that specifying id in request does not break id sequence for next users """
         user = self.__get_full_user_en()
         user_list = users.get()
         user_id = max(user['id'] for user in user_list) + 2 if user_list else 2
@@ -270,6 +285,7 @@ class TestUsers(object):
 
     @attr(negative=True)
     def test_create_user_with_existing_id(self):
+        """ Negative test on creation user with duplicate id """
         user = self.__get_full_user_en()
         user_list = users.get()
         last_user = max(user_list, key=lambda user: user['id'])
@@ -288,7 +304,8 @@ class TestUsers(object):
     @attr(negative=True)
     @SkipTest
     def test_create_user_with_wrong_data(self):
-        """ This fails, I think this is a bug because this behavior resulting 
+        """ Test create user with wrong data (list instead of dict)
+        This fails, I think this is a bug because this behavior resulting 
         to broken json structure, filed https://github.com/typicode/json-server/issues/547
         """
         user_list = users.get()
@@ -300,6 +317,7 @@ class TestUsers(object):
 
     @attr(negative=True)
     def test_replace_user_with_wrong_id(self):
+        """ Negative test on replace user by method PUT with non-existent id """
         user_list = users.get()
         user_id = max(user['id'] for user in user_list) + 1 if user_list else 1
         user = self.__get_minimal_user()
@@ -311,6 +329,7 @@ class TestUsers(object):
 
     @attr(negative=True)
     def test_update_user_with_wrong_id(self):
+        """ Negative test on update user by method PATCH with non-existent id """
         user_list = users.get()
         user_id = max(user['id'] for user in user_list) + 1 if user_list else 1
         json = {'name': self.fake.name()}
@@ -322,6 +341,7 @@ class TestUsers(object):
 
     @attr(negative=True)
     def test_delete_user_with_wrong_id(self):
+        """ Negative test on delete user by method DELETE with non-existent id """
         user_list = users.get()
         user_id = max(user['id'] for user in user_list) + 1 if user_list else 1
         users.delete(user_id)
