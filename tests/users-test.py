@@ -170,6 +170,28 @@ class TestUsers(object):
                                            "data sent + id, sent %s but got %s" % (user, last_user))
             yield test
 
+    def test_filter_by_name_unicode(self):
+        user = self.__get_full_user_localized()
+        users.post(user)
+        search_name = user['name']
+        user_list = users.get(name=search_name)
+        assert_true(len(user_list) >=1, "At least one user should be found, but got %s" % user_list)
+        last_user = max(user_list, key=lambda user: user['id'])
+        user.update(id=last_user['id'])
+        assert_dict_equal(user, last_user, "Data of the last record should be equal to the data sent + id, "
+                                           "sent %s but got %s" % (user, last_user))
+
+    def test_full_text_search_unicode(self):
+        user = self.__get_full_user_localized()
+        users.post(user)
+        search_token = user['name'][:2]
+        user_list = users.get(q=search_token)
+        assert_true(len(user_list) >= 1, "At least one user should be found, got %s" % user_list)
+        last_user = max(user_list, key=lambda user: user['id'])
+        user.update(id=last_user['id'])
+        assert_dict_equal(user, last_user, "Data of the last record shoud be equal to the data sent + id, "
+                                           "sent %s but got %s" % (user, last_user))
+
     def test_replace_user(self):
         user = self.__get_full_user_en()
         users.post(user)
