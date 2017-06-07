@@ -219,6 +219,24 @@ class TestUsers(object):
                       "User should be created with the id passed, "
                       "sent %s, created %s" % (user, new_user_list[-1]))
 
+    def test_sequence_after_create_user_with_id(self):
+        user = self.__get_full_user_en()
+        user_list = users.get()
+        user_id = max(user['id'] for user in user_list) + 2 if user_list else 2
+        user.update(id=user_id)
+        users.post(user)
+        for _ in xrange(2):
+            user = self.__get_full_user_en()
+            users.post(user)
+            user_list = users.get()
+            new_user = user_list[-1]
+            assert_not_equal(user_id, new_user['id'],
+                             "New user should be created with new id, created with %s" % user_id)
+            user.update(id=new_user['id'])
+            assert_dict_equal(user, new_user,
+                              "New user should be created with the data sent, "
+                              "sent %s, created %s" % (user, new_user))
+
     @attr(negative=True)
     def test_create_user_with_existing_id(self):
         user = self.__get_full_user_en()
@@ -247,4 +265,36 @@ class TestUsers(object):
         new_user_list = users.get()
         assert_equals(len(user_list), len(new_user_list),
                       "User count should remain the same, "
+                      "was %d, now %d" % (len(user_list), len(new_user_list)))
+
+    @attr(negative=True)
+    def test_replace_user_with_wrong_id(self):
+        user_list = users.get()
+        user_id = max(user['id'] for user in user_list) + 1 if user_list else 1
+        user = self.__get_minimal_user()
+        users.put(user_id, user)
+        new_user_list = users.get()
+        assert_equals(len(user_list), len(new_user_list),
+                      "Users count should remain unchanged, "
+                      "was %d, now %d" % (len(user_list), len(new_user_list)))
+
+    @attr(negative=True)
+    def test_update_user_with_wrong_id(self):
+        user_list = users.get()
+        user_id = max(user['id'] for user in user_list) + 1 if user_list else 1
+        json = {'name': self.fake.name()}
+        users.patch(user_id, json)
+        new_user_list = users.get()
+        assert_equals(len(user_list), len(new_user_list),
+                      "Users count should remain unchanged, "
+                      "was %d, now %d" % (len(user_list), len(new_user_list)))
+
+    @attr(negative=True)
+    def test_delete_user_with_wrong_id(self):
+        user_list = users.get()
+        user_id = max(user['id'] for user in user_list) + 1 if user_list else 1
+        users.delete(user_id)
+        new_user_list = users.get()
+        assert_equals(len(user_list), len(new_user_list),
+                      "Users count should remain unchanged, "
                       "was %d, now %d" % (len(user_list), len(new_user_list)))
